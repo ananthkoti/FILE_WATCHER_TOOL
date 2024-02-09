@@ -112,7 +112,7 @@ namespace file_watcher_tool
         static void StartHourlyReportGenerator()
         {
             Timer hourlyTimer = new Timer();
-            hourlyTimer.Interval = 60 * 60 * 1000;
+            hourlyTimer.Interval = 60*60*1000;
             hourlyTimer.Elapsed += GenerateHourlyReport;
             hourlyTimer.Start();
         }
@@ -154,7 +154,7 @@ namespace file_watcher_tool
 
         static DateTime DetermineDeadlineTime(string FilePath)
         {
-            DateTime DeadlineTime = DateTime.Today.AddHours(19);
+            DateTime DeadlineTime = DateTime.Today.AddHours(12).AddMinutes(40);
 
             if (DateTime.Now >= DeadlineTime)
             {
