@@ -16,9 +16,9 @@ namespace file_watcher_tool
 
          private static void Main(string[] args)
         {
-            CreateLookUpTable();
+          //  CreateLookUpTable();
 
-            CreateTransactionalTable();
+          //  CreateTransactionalTable();
 
             StartFileMonitoring();
 
@@ -28,7 +28,7 @@ namespace file_watcher_tool
             Console.ReadKey();
         }
 
-        static void CreateLookUpTable()
+       /* static void CreateLookUpTable()
         {
             using (SqlConnection connection = new SqlConnection(connectionString))
             {
@@ -48,7 +48,7 @@ namespace file_watcher_tool
                 command.ExecuteNonQuery();
             }
         }
-
+       */
         static void StartFileMonitoring()
         {
             FileSystemWatcher watcher = new FileSystemWatcher();
