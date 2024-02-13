@@ -16,9 +16,7 @@ namespace file_watcher_tool
 
          private static void Main(string[] args)
         {
-          //  CreateLookUpTable();
-
-          //  CreateTransactionalTable();
+          
 
             StartFileMonitoring();
 
@@ -28,32 +26,11 @@ namespace file_watcher_tool
             Console.ReadKey();
         }
 
-       /* static void CreateLookUpTable()
-        {
-            using (SqlConnection connection = new SqlConnection(connectionString))
-            {
-                connection.Open();
-                string query = $"CREATE TABLE IF NOT EXISTS {lookupTableName} (FileName varchar(50) not null, FilePath varchar(100) not null, EarliestExpectedTime time not null, DeadlineTime time not null, Schedule varchar(50) not null, primary key (FileName, FilePath))";
-                SqlCommand command = new SqlCommand(query, connection);
-                command.ExecuteNonQuery();
-            }
-        }
-        static void CreateTransactionalTable()
-        {
-            using (SqlConnection connection = new SqlConnection(connectionString))
-            {
-                connection.Open();
-                string query = $"CREATE TABLE IF NOT EXISTS {transactionalTableName} (BatchDate date not null, FileName varchar(50) not null, FilePath varchar(100) not null, ActualTime time not null, ActualSize bigint not null, Status varchar(10) not null, foreign key (FileName, FilePath) references LookUpTable (FileName, FilePath), primary key (BatchDate, FileName, FilePath))";
-                SqlCommand command = new SqlCommand(query, connection);
-                command.ExecuteNonQuery();
-            }
-        }
-       */
         static void StartFileMonitoring()
         {
             FileSystemWatcher watcher = new FileSystemWatcher();
             watcher.Path = @"C:\sample_file_watcher";
-            watcher.NotifyFilter = NotifyFilters.FileName | NotifyFilters.DirectoryName | NotifyFilters.LastWrite | NotifyFilters.LastAccess;
+            watcher.NotifyFilter = NotifyFilters.FileName | NotifyFilters.DirectoryName | NotifyFilters.LastWrite | NotifyFilters.LastAccess | NotifyFilters.Size;
             watcher.Filter = "*.*";
             watcher.Created += OnFileCreated;
             watcher.Changed += OnFileChanged;
@@ -63,13 +40,15 @@ namespace file_watcher_tool
         }
         static void OnFileCreated(object sender, FileSystemEventArgs e)
         {
+            Console.WriteLine($"A new file {e.Name} was created at {e.FullPath}");
+
             string FileName = e.Name;
             string FilePath = e.FullPath;
             string BatchDate = DateTime.Today.ToString("yyyy-MM-dd");
             DateTime ActualTime = DateTime.Now;
             long ActualSize = new FileInfo(FilePath).Length;
-            DateTime EarliestExpectedTime = DetermineEarliestExpectedTime(FilePath);
-            DateTime DeadlineTime = DetermineDeadlineTime(FilePath);
+            DateTime EarliestExpectedTime = DetermineEarliestExpectedTime();
+            DateTime DeadlineTime = DetermineDeadlineTime();
             string Schedule = DetermineSchedule(FilePath);
             string Status = DetermineStatus(ActualTime, EarliestExpectedTime, DeadlineTime);
 
@@ -79,17 +58,23 @@ namespace file_watcher_tool
 
         static void OnFileChanged(object sender, FileSystemEventArgs e)
         {
+            Console.WriteLine($"A new file {e.Name} was updated at {e.FullPath}");
+            
             string FileName = e.Name;
             string FilePath = e.FullPath;
             string BatchDate = DateTime.Today.ToString("yyyy-MM-dd");
             DateTime ActualTime = DateTime.Now;
             long ActualSize = new FileInfo(FilePath).Length;
+            DateTime EarliestExpectedTime = DetermineEarliestExpectedTime();
+            DateTime DeadlineTime = DetermineDeadlineTime();
+            string Status = DetermineStatus(ActualTime, EarliestExpectedTime, DeadlineTime);
 
-            UpdateRecordInTransactionalTable(FileName, FilePath, BatchDate, ActualTime, ActualSize);
+            UpdateRecordInTransactionalTable(FileName, FilePath, BatchDate, ActualTime, ActualSize, Status);
         }
 
         static void OnFileDeleted(object sender, FileSystemEventArgs e)
         {
+            Console.WriteLine($"A file {e.Name} was deleted from {e.FullPath}");
             string FileName = e.Name;
             string FilePath = e.FullPath;
 
@@ -140,9 +125,11 @@ namespace file_watcher_tool
             }
         }
 
-        static DateTime DetermineEarliestExpectedTime(string FilePath)
+        static DateTime DetermineEarliestExpectedTime()
         {
-            if (FilePath.Contains("daily"))
+            DateTime ActualTime = DateTime.Now;
+            DateTime EarliestExpectedTime = DateTime.Today.AddHours(9);
+            if (ActualTime <= EarliestExpectedTime)
             {
                 return DateTime.Today.AddHours(9);
             }
@@ -152,11 +139,12 @@ namespace file_watcher_tool
             }
         }
 
-        static DateTime DetermineDeadlineTime(string FilePath)
+        static DateTime DetermineDeadlineTime()
         {
-            DateTime DeadlineTime = DateTime.Today.AddHours(12).AddMinutes(40);
+            DateTime ActualTime = DateTime.Now;
+            DateTime DeadlineTime = DateTime.Today.AddHours(19).AddMinutes(00);
 
-            if (DateTime.Now >= DeadlineTime)
+            if (ActualTime >= DeadlineTime)
             {
                 DeadlineTime = DateTime.Today.AddDays(1).AddHours(19);
             }
@@ -202,69 +190,80 @@ namespace file_watcher_tool
 
         static void InsertRecordIntoLookUpTable(string FileName, string FilePath, DateTime EarliestExpectedTime, DateTime DeadlineTime, string Schedule)
         {
+            string query = $"INSERT INTO {lookupTableName} (FileName, FilePath, EarliestExpectedTime, DeadlineTime, Schedule) VALUES('{FileName}', '{FilePath}', '{EarliestExpectedTime}', '{DeadlineTime}', '{Schedule}')";
+           
             using (SqlConnection connection = new SqlConnection(connectionString))
             {
-                connection.Open();
 
-                string query = $"INSERT INTO {lookupTableName} (FileName, FilePath, EarliestExpectedTime, DeadlineTime, Schedule)"
-                                + $"VALUES ('{FileName}', '{FilePath}', '{EarliestExpectedTime}', '{DeadlineTime}', '{Schedule}')";
-
-                SqlCommand command = new SqlCommand(query, connection);
-                command.ExecuteNonQuery();
+                using (SqlCommand command = new SqlCommand(query, connection))
+                {
+                    connection.Open();
+                    command.ExecuteNonQuery();
+                    connection.Close();
+                }
             }
         }
 
         static void InsertRecordIntoTransactionalTable(string BatchDate, string FileName, string FilePath, DateTime ActualTime, long ActualSize, string Status)
         {
+            string query = $"INSERT INTO {transactionalTableName} (BatchDate, FileName, FilePath, ActualTime, ActualSize, Status) ('{BatchDate}', '{FileName}', '{FilePath}', '{ActualTime}', '{ActualSize}', '{Status}')";
+            
             using (SqlConnection connection = new SqlConnection(connectionString))
             {
-                connection.Open();
 
-                string query = $"INSERT INTO {transactionalTableName} (BatchDate, FileName, FilePath, ActualTime, ActualSize, Status)"
-                                + $"VALUES ('{BatchDate}', '{FileName}', '{FilePath}', '{ActualTime}', '{ActualSize}', '{Status}')";
-
-                SqlCommand command = new SqlCommand(query, connection);
-                command.ExecuteNonQuery();
-
+                using (SqlCommand command = new SqlCommand(query, connection))
+                {
+                    connection.Open();
+                    command.ExecuteNonQuery();
+                    connection.Close();
+                }   
             }
         }
 
-        static void UpdateRecordInTransactionalTable(string FileName, string FilePath, string BatchDate, DateTime ActualTime, long ActualSize)
+        static void UpdateRecordInTransactionalTable(string FileName, string FilePath, string BatchDate, DateTime ActualTime, long ActualSize, string Status)
         {
+            string query = $"UPDATE {transactionalTableName} SET  FilePath = '{FilePath}', ActualTime = '{ActualTime}', ActualSize = '{ActualSize}' Status = '{Status}'  WHERE BatchDate = '{BatchDate}' AND FileName = '{FileName}' ";
+            
+
             using (SqlConnection connection = new SqlConnection(connectionString))
             {
-                connection.Open();
 
-                string query = $"UPDATE {transactionalTableName} SET ActualTime = '{ActualTime}', ActualSize = '{ActualSize}'  BatchDate = '{BatchDate}' WHERE FileName = '{FileName}' AND FilePath = '{FilePath}' ";
-
-                SqlCommand command = new SqlCommand(query, connection);
-                command.ExecuteNonQuery();
+                using (SqlCommand command = new SqlCommand(query, connection))
+                {
+                    connection.Open();
+                    command.ExecuteNonQuery();
+                    connection.Close();
+                }
             }
         }
 
         static void DeleteRecordFromTransactionalTable(string FileName, string FilePath)
         {
+            string query = $"DELETE FROM {transactionalTableName} WHERE FileName = '{FileName}' AND FilePath = '{FilePath}' ";
+
             using (SqlConnection connection = new SqlConnection(connectionString))
             {
-                connection.Open();
-
-                string query = $"DELETE FROM {transactionalTableName} WHERE FileName = '{FileName}' AND FilePath = '{FilePath}' ";
-
-                SqlCommand command = new SqlCommand(query, connection);
-                command.ExecuteNonQuery();
+                using (SqlCommand command = new SqlCommand(query, connection))
+                {
+                    connection.Open();
+                    command.ExecuteNonQuery();
+                    connection.Close();
+                }
             }
         }
 
         static void RenameRecordInTransactionalTable(string NewFileName, string NewFilePath, string BatchDate, DateTime ActualTime, string OldFileName, string OldFilePath)
         {
+            string query = $"UPDATE {transactionalTableName} SET FileName = '{NewFileName}', FilePath = '{NewFilePath}', BatchDate = '{BatchDate}', ActualTime = '{ActualTime}' WHERE FileName = '{OldFileName}' AND FilePath = '{OldFilePath}' ";
+           
             using (SqlConnection connection = new SqlConnection(connectionString))
             {
-                connection.Open();
-
-                string query = $"UPDATE {transactionalTableName} SET FileName = '{NewFileName}', FilePath = '{NewFilePath}', BatchDate = '{BatchDate}', ActualTime = '{ActualTime}' WHERE FileName = '{OldFileName}' AND FilePath = '{OldFilePath}' ";
-
-                SqlCommand command = new SqlCommand(query, connection);
-                command.ExecuteNonQuery();
+                using (SqlCommand command = new SqlCommand(query, connection))
+                {
+                    connection.Open();
+                    command.ExecuteNonQuery();
+                    connection.Close();
+                }
             }
         }
     }
