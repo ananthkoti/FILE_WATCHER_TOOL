@@ -30,7 +30,7 @@ namespace file_watcher_tool
         {
             FileSystemWatcher watcher = new FileSystemWatcher();
             watcher.Path = @"C:\sample_file_watcher";
-            watcher.NotifyFilter = NotifyFilters.FileName | NotifyFilters.DirectoryName | NotifyFilters.LastWrite | NotifyFilters.LastAccess | NotifyFilters.Size;
+            watcher.NotifyFilter = NotifyFilters.FileName | NotifyFilters.DirectoryName | NotifyFilters.LastWrite | NotifyFilters.Size;
             watcher.Filter = "*.*";
             watcher.Created += OnFileCreated;
             watcher.Changed += OnFileChanged;
@@ -96,14 +96,14 @@ namespace file_watcher_tool
         static void StartHourlyReportGenerator()
         {
             Timer hourlyTimer = new Timer();
-            hourlyTimer.Interval = 60*60*1000;
+            hourlyTimer.Interval = 1000;
             hourlyTimer.Elapsed += GenerateHourlyReport;
             hourlyTimer.Start();
         }
 
         static void GenerateHourlyReport(object sender, ElapsedEventArgs e)
         {
-            string currentDate = DateTime.Now.ToString("yyyy-MM-dd");
+            DateTime currentDate = DateTime.Now;
             string query = $"SELECT * FROM {transactionalTableName} WHERE BatchDate = '{currentDate}' AND Status = 'overdue' ";
 
             using (SqlConnection connection = new SqlConnection(connectionString))
@@ -206,7 +206,7 @@ namespace file_watcher_tool
 
         static void InsertRecordIntoTransactionalTable(DateTime BatchDate, string FileName, string FilePath, DateTime ActualTime, long ActualSize, string Status)
         {
-            string query = $"INSERT INTO {transactionalTableName} (BatchDate, FileName, FilePath, ActualTime, ActualSize, Status) ('{BatchDate.ToString("yyyy-MM-dd")}', '{FileName}', '{FilePath}', '{ActualTime}', '{ActualSize}', '{Status}')";
+            string query = $"INSERT INTO {transactionalTableName} (BatchDate, FileName, FilePath, ActualTime, ActualSize, Status) VALUES ( '{BatchDate}', '{FileName}', '{FilePath}', '{ActualTime}', '{ActualSize}', '{Status}')";
             
             using (SqlConnection connection = new SqlConnection(connectionString))
             {
@@ -222,7 +222,7 @@ namespace file_watcher_tool
 
         static void UpdateRecordInTransactionalTable(string FileName, string FilePath, DateTime BatchDate, DateTime ActualTime, long ActualSize)
         {
-            string query = $"UPDATE {transactionalTableName} SET  FilePath = '{FilePath}', ActualTime = '{ActualTime}', ActualSize = '{ActualSize}' WHERE BatchDate = '{BatchDate.ToString("yyyy-MM-dd")}' AND FileName = '{FileName}' ";
+            string query = $"UPDATE {transactionalTableName} SET  FilePath = '{FilePath}', ActualTime = '{ActualTime}', ActualSize = '{ActualSize}' WHERE BatchDate = '{BatchDate}' AND FileName = '{FileName}' ";
             
 
             using (SqlConnection connection = new SqlConnection(connectionString))
@@ -254,7 +254,7 @@ namespace file_watcher_tool
 
         static void RenameRecordInTransactionalTable(string NewFileName, string NewFilePath, DateTime BatchDate, DateTime ActualTime, string OldFileName, string OldFilePath)
         {
-            string query = $"UPDATE {transactionalTableName} SET FileName = '{NewFileName}', FilePath = '{NewFilePath}', BatchDate = '{BatchDate.ToString("yyyy-MM-dd")}', ActualTime = '{ActualTime}' WHERE FileName = '{OldFileName}' AND FilePath = '{OldFilePath}' ";
+            string query = $"UPDATE {transactionalTableName} SET FileName = '{NewFileName}', FilePath = '{NewFilePath}', BatchDate = '{BatchDate}', ActualTime = '{ActualTime}' WHERE FileName = '{OldFileName}' AND FilePath = '{OldFilePath}' ";
            
             using (SqlConnection connection = new SqlConnection(connectionString))
             {
