@@ -127,15 +127,7 @@ namespace file_watcher_tool
 
         static DateTime DetermineEarliestExpectedTime(string FilePath)
         {
-            
-            if (FilePath.Contains("Business"))
-            {
                 return DateTime.Today.AddHours(09).AddMinutes(00);
-            }
-            else
-            {
-                return DateTime.Today;
-            }
         }
 
         static DateTime DetermineDeadlineTime(string FilePath)
