@@ -47,8 +47,8 @@ namespace file_watcher_tool
             DateTime BatchDate = DateTime.Now;
             DateTime ActualTime = DateTime.Now;
             long ActualSize = new FileInfo(FilePath).Length;
-            DateTime EarliestExpectedTime = DetermineEarliestExpectedTime(FilePath);
-            DateTime DeadlineTime = DetermineDeadlineTime(FilePath);
+            DateTime EarliestExpectedTime = DetermineEarliestExpectedTime();
+            DateTime DeadlineTime = DetermineDeadlineTime();
             string Schedule = DetermineSchedule(FilePath);
             string Status = DetermineStatus(ActualTime, EarliestExpectedTime, DeadlineTime);
 
@@ -125,12 +125,12 @@ namespace file_watcher_tool
             }
         }
 
-        static DateTime DetermineEarliestExpectedTime(string FilePath)
+        static DateTime DetermineEarliestExpectedTime()
         {
                 return DateTime.Today.AddHours(09).AddMinutes(00);
         }
 
-        static DateTime DetermineDeadlineTime(string FilePath)
+        static DateTime DetermineDeadlineTime()
         {
             
             DateTime DeadlineTime = DateTime.Today.AddHours(19).AddMinutes(00);
