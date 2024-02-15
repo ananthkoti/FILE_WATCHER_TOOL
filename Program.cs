@@ -47,8 +47,8 @@ namespace file_watcher_tool
             DateTime BatchDate = DateTime.Now;
             DateTime ActualTime = DateTime.Now;
             long ActualSize = new FileInfo(FilePath).Length;
-            DateTime EarliestExpectedTime = DetermineEarliestExpectedTime();
-            DateTime DeadlineTime = DetermineDeadlineTime();
+            DateTime EarliestExpectedTime = DetermineEarliestExpectedTime(FilePath);
+            DateTime DeadlineTime = DetermineDeadlineTime(FilePath);
             string Schedule = DetermineSchedule(FilePath);
             string Status = DetermineStatus(ActualTime, EarliestExpectedTime, DeadlineTime);
 
@@ -125,30 +125,23 @@ namespace file_watcher_tool
             }
         }
 
-        static DateTime DetermineEarliestExpectedTime()
+        static DateTime DetermineEarliestExpectedTime(string FilePath)
         {
-            DateTime ActualTime = DateTime.Now;
-            DateTime EarliestExpectedTime = DateTime.Today.AddHours(9).AddMinutes(00);
-            if (ActualTime == EarliestExpectedTime)
+            
+            if (FilePath.Contains("Business"))
             {
-                return EarliestExpectedTime;
+                return DateTime.Today.AddHours(09).AddMinutes(00);
             }
             else
             {
-                return DateTime.Today.AddDays(1).AddHours(9).AddMinutes(00);
+                return DateTime.Today;
             }
         }
 
-        static DateTime DetermineDeadlineTime()
+        static DateTime DetermineDeadlineTime(string FilePath)
         {
-            DateTime ActualTime = DateTime.Now;
+            
             DateTime DeadlineTime = DateTime.Today.AddHours(19).AddMinutes(00);
-
-            if (ActualTime >= DeadlineTime)
-            {
-                DeadlineTime = DateTime.Today.AddDays(1).AddHours(19).AddMinutes(00);
-            }
-
             return DeadlineTime;
         }
 
