@@ -96,15 +96,15 @@ namespace file_watcher_tool
         static void StartHourlyReportGenerator()
         {
             Timer hourlyTimer = new Timer();
-            hourlyTimer.Interval = 1000;
+            hourlyTimer.Interval = 60*60*1000;
             hourlyTimer.Elapsed += GenerateHourlyReport;
             hourlyTimer.Start();
         }
 
         static void GenerateHourlyReport(object sender, ElapsedEventArgs e)
         {
-            DateTime currentDate = DateTime.Now;
-            string query = $"SELECT * FROM {transactionalTableName} WHERE BatchDate = '{currentDate}' AND Status = 'overdue' ";
+            DateTime BatchDate = DateTime.Now;
+            string query = $"SELECT * FROM {transactionalTableName} WHERE BatchDate = '{BatchDate}' AND Status = 'overdue' ";
 
             using (SqlConnection connection = new SqlConnection(connectionString))
             {
@@ -113,7 +113,7 @@ namespace file_watcher_tool
                 { 
                     connection.Open();
                     SqlDataReader reader = command.ExecuteReader();
-                    Console.WriteLine($"Hourly report for {currentDate}: ");
+                    Console.WriteLine($"Hourly report for {BatchDate}: ");
                     while (reader.Read())
                     {
                     Console.WriteLine($"File Name: {reader["FileName"]}, File Path: {reader["FilePath"]}");
