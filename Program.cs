@@ -44,7 +44,7 @@ namespace file_watcher_tool
 
             string FileName = e.Name;
             string FilePath = e.FullPath;
-            DateTime BatchDate = DateTime.Now;
+            DateTime BatchDate = DateTime.Today;
             DateTime ActualTime = DateTime.Now;
             long ActualSize = new FileInfo(FilePath).Length;
             DateTime EarliestExpectedTime = DetermineEarliestExpectedTime();
@@ -58,13 +58,15 @@ namespace file_watcher_tool
 
         static void OnFileChanged(object sender, FileSystemEventArgs e)
         {
-            Console.WriteLine($"A new file {e.Name} was updated at {e.FullPath}");
+            Console.WriteLine($"A file {e.Name} was updated at {e.FullPath}");
             
             string FileName = e.Name;
             string FilePath = e.FullPath;
-            DateTime BatchDate = DateTime.Now;
+            DateTime BatchDate = DateTime.Today;
             DateTime ActualTime = DateTime.Now;
-            long ActualSize = new FileInfo(FilePath).Length;
+            long OldSize = GetOldFileSize(FileName, FilePath);
+            long NewSize = new FileInfo(FilePath).Length;
+            long ActualSize = NewSize - OldSize;
             
             
 
@@ -82,11 +84,12 @@ namespace file_watcher_tool
 
         static void OnFileRenamed(object sender, RenamedEventArgs e)
         {
+            Console.WriteLine($"A file {e.Name} was renamed to {e.FullPath}");
             string OldFileName = e.OldName;
             string OldFilePath = e.OldFullPath;
             string NewFileName = e.Name;
             string NewFilePath = e.FullPath;
-            DateTime BatchDate = DateTime.Now;
+            DateTime BatchDate = DateTime.Today;
             DateTime ActualTime = DateTime.Now;
 
             RenameRecordInTransactionalTable(NewFileName, NewFilePath, BatchDate, ActualTime, OldFileName, OldFilePath);
@@ -103,8 +106,8 @@ namespace file_watcher_tool
 
         static void GenerateHourlyReport(object sender, ElapsedEventArgs e)
         {
-            DateTime BatchDate = DateTime.Now;
-            string query = $"SELECT * FROM {transactionalTableName} WHERE BatchDate = '{BatchDate}' AND Status = 'overdue' ";
+            DateTime BatchDate = DateTime.Today;
+            string query = $"SELECT * FROM {transactionalTableName} WHERE BatchDate = '{BatchDate:yyyy-MM-dd}' AND Status = 'overdue' ";
 
             using (SqlConnection connection = new SqlConnection(connectionString))
             {
@@ -191,7 +194,7 @@ namespace file_watcher_tool
 
         static void InsertRecordIntoTransactionalTable(DateTime BatchDate, string FileName, string FilePath, DateTime ActualTime, long ActualSize, string Status)
         {
-            string query = $"INSERT INTO {transactionalTableName} (BatchDate, FileName, FilePath, ActualTime, ActualSize, Status) VALUES ( '{BatchDate}', '{FileName}', '{FilePath}', '{ActualTime}', '{ActualSize}', '{Status}')";
+            string query = $"INSERT INTO {transactionalTableName} (BatchDate, FileName, FilePath, ActualTime, ActualSize, Status) VALUES ( '{BatchDate:yyyy-MM-dd}', '{FileName}', '{FilePath}', '{ActualTime}', '{ActualSize}', '{Status}')";
             
             using (SqlConnection connection = new SqlConnection(connectionString))
             {
@@ -207,7 +210,8 @@ namespace file_watcher_tool
 
         static void UpdateRecordInTransactionalTable(string FileName, string FilePath, DateTime BatchDate, DateTime ActualTime, long ActualSize)
         {
-            string query = $"UPDATE {transactionalTableName} SET  FilePath = '{FilePath}', ActualTime = '{ActualTime}', ActualSize = '{ActualSize}' WHERE BatchDate = '{BatchDate}' AND FileName = '{FileName}' ";
+            
+            string query = $"UPDATE {transactionalTableName} SET  FilePath = '{FilePath}', ActualTime = '{ActualTime}' , ActualSize = '{ActualSize}' WHERE BatchDate = '{BatchDate:yyyy-MM-dd}' AND FileName = '{FileName}' ";
             
 
             using (SqlConnection connection = new SqlConnection(connectionString))
@@ -215,6 +219,7 @@ namespace file_watcher_tool
 
                 using (SqlCommand command = new SqlCommand(query, connection))
                 {
+                   
                     connection.Open();
                     int v =command.ExecuteNonQuery();
                     connection.Close();
@@ -239,7 +244,7 @@ namespace file_watcher_tool
 
         static void RenameRecordInTransactionalTable(string NewFileName, string NewFilePath, DateTime BatchDate, DateTime ActualTime, string OldFileName, string OldFilePath)
         {
-            string query = $"UPDATE {transactionalTableName} SET FileName = '{NewFileName}', FilePath = '{NewFilePath}', BatchDate = '{BatchDate}', ActualTime = '{ActualTime}' WHERE FileName = '{OldFileName}' AND FilePath = '{OldFilePath}' ";
+            string query = $"UPDATE {transactionalTableName} SET FileName = '{NewFileName}', FilePath = '{NewFilePath}', BatchDate = '{BatchDate:yyyy-MM-dd}', ActualTime = '{ActualTime}' WHERE FileName = '{OldFileName}' AND FilePath = '{OldFilePath}' ";
            
             using (SqlConnection connection = new SqlConnection(connectionString))
             {
@@ -250,6 +255,30 @@ namespace file_watcher_tool
                     connection.Close();
                 }
             }
+        }
+
+        static long GetOldFileSize(string FileName,string FilePath) 
+        { 
+            long OldSize = 0;
+           
+            string query = $"SELECT ActualSize FROM {transactionalTableName} WHERE FileName = '{FileName}' AND FilePath = '{FilePath}' ";
+
+            using (SqlConnection connection = new SqlConnection(connectionString))
+            {
+                using (SqlCommand command = new SqlCommand(query, connection))
+                {
+                    connection.Open();
+                    int v = command.ExecuteNonQuery();
+                    object result = command.ExecuteScalar();
+                    if (result != null && result != DBNull.Value)
+                    {
+                        OldSize = Convert.ToInt64(result);
+                    }
+                    connection.Close();
+                }
+            }
+
+            return OldSize;
         }
     }
 }
