@@ -2,7 +2,6 @@
 using System.IO;
 using System.Data.SqlClient;
 using System.Timers;
-using System.Diagnostics.Eventing.Reader;
 
 
 namespace file_watcher_tool
