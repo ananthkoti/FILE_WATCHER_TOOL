@@ -2,6 +2,7 @@
 using System.IO;
 using System.Data.SqlClient;
 using System.Timers;
+using System.Diagnostics.Eventing.Reader;
 
 
 namespace file_watcher_tool
@@ -28,10 +29,15 @@ namespace file_watcher_tool
 
         static void StartFileMonitoring()
         {
-            FileSystemWatcher watcher = new FileSystemWatcher();
-            watcher.Path = @"C:\sample_file_watcher";
-            watcher.NotifyFilter = NotifyFilters.FileName | NotifyFilters.DirectoryName | NotifyFilters.LastWrite | NotifyFilters.Size;
-            watcher.Filter = "*.*";
+            string parentDirectory = @"C:\sample_file_watcher";
+            FileSystemWatcher watcher = new FileSystemWatcher
+            {
+                Path = parentDirectory,
+                Filter = "*.*",
+                IncludeSubdirectories = true,
+                NotifyFilter = NotifyFilters.FileName | NotifyFilters.DirectoryName | NotifyFilters.LastWrite | NotifyFilters.Size | NotifyFilters.LastAccess,
+                
+            };
             watcher.Created += OnFileCreated;
             watcher.Changed += OnFileChanged;
             watcher.Deleted += OnFileDeleted;
@@ -64,9 +70,8 @@ namespace file_watcher_tool
             string FilePath = e.FullPath;
             DateTime BatchDate = DateTime.Today;
             DateTime ActualTime = DateTime.Now;
-            long OldSize = GetOldFileSize(FileName, FilePath);
-            long NewSize = new FileInfo(FilePath).Length;
-            long ActualSize = NewSize - OldSize;
+            long ActualSize = new FileInfo(FilePath).Length;
+            
             
             
 
@@ -99,14 +104,14 @@ namespace file_watcher_tool
         static void StartHourlyReportGenerator()
         {
             Timer hourlyTimer = new Timer();
-            hourlyTimer.Interval = 60*60*1000;
+            hourlyTimer.Interval = 60*1000;
             hourlyTimer.Elapsed += GenerateHourlyReport;
             hourlyTimer.Start();
         }
 
         static void GenerateHourlyReport(object sender, ElapsedEventArgs e)
         {
-            DateTime BatchDate = DateTime.Today;
+            DateTime BatchDate = DateTime.Now;
             string query = $"SELECT * FROM {transactionalTableName} WHERE BatchDate = '{BatchDate:yyyy-MM-dd}' AND Status = 'overdue' ";
 
             using (SqlConnection connection = new SqlConnection(connectionString))
@@ -116,10 +121,19 @@ namespace file_watcher_tool
                 { 
                     connection.Open();
                     SqlDataReader reader = command.ExecuteReader();
-                    Console.WriteLine($"Hourly report for {BatchDate}: ");
-                    while (reader.Read())
+                    Console.WriteLine($"Hourly report for {BatchDate:yyyy-MM-dd}: ");
+
+                    if (!reader.HasRows)
                     {
-                    Console.WriteLine($"File Name: {reader["FileName"]}, File Path: {reader["FilePath"]}");
+                        Console.WriteLine("There are no overdue files for this hour.");
+                    }
+
+                    else
+                    {
+                        while (reader.Read())
+                        {
+                            Console.WriteLine($"File Name: {reader["FileName"]}, File Path: {reader["FilePath"]}. Need Attention!!! ");
+                        }
                     }
 
                 reader.Close();
@@ -136,7 +150,7 @@ namespace file_watcher_tool
         static DateTime DetermineDeadlineTime()
         {
             
-            DateTime DeadlineTime = DateTime.Today.AddHours(19).AddMinutes(00);
+            DateTime DeadlineTime = DateTime.Today.AddHours(12).AddMinutes(40);
             return DeadlineTime;
         }
 
@@ -255,30 +269,6 @@ namespace file_watcher_tool
                     connection.Close();
                 }
             }
-        }
-
-        static long GetOldFileSize(string FileName,string FilePath) 
-        { 
-            long OldSize = 0;
-           
-            string query = $"SELECT ActualSize FROM {transactionalTableName} WHERE FileName = '{FileName}' AND FilePath = '{FilePath}' ";
-
-            using (SqlConnection connection = new SqlConnection(connectionString))
-            {
-                using (SqlCommand command = new SqlCommand(query, connection))
-                {
-                    connection.Open();
-                    int v = command.ExecuteNonQuery();
-                    object result = command.ExecuteScalar();
-                    if (result != null && result != DBNull.Value)
-                    {
-                        OldSize = Convert.ToInt64(result);
-                    }
-                    connection.Close();
-                }
-            }
-
-            return OldSize;
         }
     }
 }
