@@ -8,11 +8,11 @@ namespace file_watcher_tool
 {
     class Program
     {
-         static readonly string connectionString = @"Data Source = (localdb)\MSSQLLocalDB ; Initial Catalog= FileWatcherDB; Integrated Security = True;";
+        private static readonly string connectionString = @"Data Source = (localdb)\MSSQLLocalDB ; Initial Catalog= FileWatcherDB; Integrated Security = True;";
 
-         static readonly string lookupTableName = "LookUpTable";
+        private static readonly string lookupTableName = "LookUpTable";
 
-         static readonly string transactionalTableName = "TransactionalTable";
+        private static readonly string transactionalTableName = "TransactionalTable";
 
           static void Main(string[] args)
         {
