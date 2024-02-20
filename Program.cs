@@ -143,39 +143,12 @@ namespace file_watcher_tool
 
         static DateTime DetermineEarliestExpectedTime()
         {
-            int hours, minutes;
-
-            Console.WriteLine("Enter hours (0-23) for Earliest Expected Time: ");
-            while(!int.TryParse(Console.ReadLine(), out hours) || hours < 0 || hours >23)
-            { 
-                Console.WriteLine("Invalid input. Please enter a valid hour (0-23): ");
-            }
-
-            Console.WriteLine("Enter minutes (0-59) for Earliest Expected Time: ");
-            while (!int.TryParse(Console.ReadLine(), out minutes) || minutes < 0 || minutes > 59)
-            {
-                Console.WriteLine("Invalid input. Please enter a valid minute (0-59): ");
-            }
-            return DateTime.Today.AddHours(hours).AddMinutes(minutes);
+            return DateTime.Today.AddHours(09).AddMinutes(00);
         }
 
         static DateTime DetermineDeadlineTime()
         {
-            int hours, minutes;
-
-            Console.WriteLine("Enter hours (0-23) for Deadline Time: ");
-            while (!int.TryParse(Console.ReadLine(), out hours) || hours < 0 || hours > 23)
-            {
-                Console.WriteLine("Invalid input. Please enter a valid hour (0-23): ");
-            }
-
-            Console.WriteLine("Enter minutes (0-59) for Deadline Time: ");
-            while (!int.TryParse(Console.ReadLine(), out minutes) || minutes < 0 || minutes > 59)
-            {
-                Console.WriteLine("Invalid input. Please enter a valid minute (0-59): ");
-            }
-
-            DateTime DeadlineTime = DateTime.Today.AddHours(hours).AddMinutes(minutes);
+            DateTime DeadlineTime = DateTime.Today.AddHours(19).AddMinutes(00);
             return DeadlineTime;
         }
 
