@@ -70,11 +70,12 @@ namespace file_watcher_tool
             DateTime BatchDate = DateTime.Today;
             DateTime ActualTime = DateTime.Now;
             long ActualSize = new FileInfo(FilePath).Length;
-            
-            
-            
+            DateTime EarliestExpectedTime = DetermineEarliestExpectedTime();
+            DateTime DeadlineTime = DetermineDeadlineTime();
+            string Status = DetermineStatus(ActualTime, EarliestExpectedTime, DeadlineTime);
 
-            UpdateRecordInTransactionalTable(FileName, FilePath, BatchDate, ActualTime, ActualSize);
+
+            UpdateRecordInTransactionalTable(FileName, FilePath, BatchDate, ActualTime, ActualSize, Status);
         }
 
         static void OnFileDeleted(object sender, FileSystemEventArgs e)
@@ -103,7 +104,7 @@ namespace file_watcher_tool
         static void StartHourlyReportGenerator()
         {
             Timer hourlyTimer = new Timer();
-            hourlyTimer.Interval = 60 * 60 * 1000;
+            hourlyTimer.Interval = 60 * 1000;
             hourlyTimer.Elapsed += GenerateHourlyReport;
             hourlyTimer.Start();
         }
@@ -148,7 +149,7 @@ namespace file_watcher_tool
 
         static DateTime DetermineDeadlineTime()
         {
-            DateTime DeadlineTime = DateTime.Today.AddHours(19).AddMinutes(00);
+            DateTime DeadlineTime = DateTime.Today.AddHours(13).AddMinutes(48);
             return DeadlineTime;
         }
 
@@ -220,10 +221,10 @@ namespace file_watcher_tool
             }
         }
 
-        static void UpdateRecordInTransactionalTable(string FileName, string FilePath, DateTime BatchDate, DateTime ActualTime, long ActualSize)
+        static void UpdateRecordInTransactionalTable(string FileName, string FilePath, DateTime BatchDate, DateTime ActualTime, long ActualSize, string Status)
         {
             
-            string query = $"UPDATE {transactionalTableName} SET  FilePath = '{FilePath}', ActualTime = '{ActualTime}' , ActualSize = '{ActualSize}' WHERE BatchDate = '{BatchDate:yyyy-MM-dd}' AND FileName = '{FileName}' ";
+            string query = $"UPDATE {transactionalTableName} SET  FilePath = '{FilePath}', ActualTime = '{ActualTime}' , ActualSize = '{ActualSize}', Status = '{Status}'  WHERE BatchDate = '{BatchDate:yyyy-MM-dd}' AND FileName = '{FileName}' ";
             
 
             using (SqlConnection connection = new SqlConnection(connectionString))
