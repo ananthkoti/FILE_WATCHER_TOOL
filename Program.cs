@@ -22,8 +22,8 @@ namespace file_watcher_tool
 
             StartHourlyReportGenerator();
 
-            Console.WriteLine("File monitoring started. Press any key to exit.");
-            Console.ReadKey();
+            Console.WriteLine("File monitoring started. Press 'e' to terminate.");
+            while (Console.Read() == 'e');
         }
 
         static void StartFileMonitoring()
