@@ -103,7 +103,7 @@ namespace file_watcher_tool
         static void StartHourlyReportGenerator()
         {
             Timer hourlyTimer = new Timer();
-            hourlyTimer.Interval = 60*1000;
+            hourlyTimer.Interval = 60 * 60 * 1000;
             hourlyTimer.Elapsed += GenerateHourlyReport;
             hourlyTimer.Start();
         }
@@ -143,13 +143,39 @@ namespace file_watcher_tool
 
         static DateTime DetermineEarliestExpectedTime()
         {
-                return DateTime.Today.AddHours(09).AddMinutes(00);
+            int hours, minutes;
+
+            Console.WriteLine("Enter hours (0-23) for Earliest Expected Time: ");
+            while(!int.TryParse(Console.ReadLine(), out hours) || hours < 0 || hours >23)
+            { 
+                Console.WriteLine("Invalid input. Please enter a valid hour (0-23): ");
+            }
+
+            Console.WriteLine("Enter minutes (0-59) for Earliest Expected Time: ");
+            while (!int.TryParse(Console.ReadLine(), out minutes) || minutes < 0 || minutes > 59)
+            {
+                Console.WriteLine("Invalid input. Please enter a valid minute (0-59): ");
+            }
+            return DateTime.Today.AddHours(hours).AddMinutes(minutes);
         }
 
         static DateTime DetermineDeadlineTime()
         {
-            
-            DateTime DeadlineTime = DateTime.Today.AddHours(12).AddMinutes(40);
+            int hours, minutes;
+
+            Console.WriteLine("Enter hours (0-23) for Deadline Time: ");
+            while (!int.TryParse(Console.ReadLine(), out hours) || hours < 0 || hours > 23)
+            {
+                Console.WriteLine("Invalid input. Please enter a valid hour (0-23): ");
+            }
+
+            Console.WriteLine("Enter minutes (0-59) for Deadline Time: ");
+            while (!int.TryParse(Console.ReadLine(), out minutes) || minutes < 0 || minutes > 59)
+            {
+                Console.WriteLine("Invalid input. Please enter a valid minute (0-59): ");
+            }
+
+            DateTime DeadlineTime = DateTime.Today.AddHours(hours).AddMinutes(minutes);
             return DeadlineTime;
         }
 
