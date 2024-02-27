@@ -148,7 +148,7 @@ namespace file_watcher_tool
 
         static DateTime DetermineDeadlineTime()
         {
-            DateTime DeadlineTime = DateTime.Today.AddHours(13).AddMinutes(48);
+            DateTime DeadlineTime = DateTime.Today.AddHours(15).AddMinutes(35);
             return DeadlineTime;
         }
 
